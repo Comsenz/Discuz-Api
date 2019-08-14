@@ -18,7 +18,7 @@ require_once libfile('function/member');
 $discuz = C::app();
 $discuz->init();
 
-$_G['config'] = array_merge($_G['config'], require './source/plugin/mobile/config_minapp.php');
+$_G['config'] = array_merge($_G['config'], require './source/plugin/mobile/config_oauths.php');
 
 $appid = $_G['config']['minapp']['appid'];
 $secret = $_G['config']['minapp']['secret'];
@@ -41,22 +41,36 @@ if(isset($wxinfo->errcode)) {
 }
 
 
-$userinfo = C::t('#mobile#weixin_minapp_user')->fetch_by_openid($wxinfo->openid);
+$userinfo = C::t('#mobile#mobile_oauths')->fetch_by_openid_unionid_type($wxinfo->openid, $wxinfo->unionid, 'minapp');
 if(!empty($userinfo)) {
-    C::t('#mobile#weixin_minapp_user')->update($openid, array('session_key' => $wxinfo->session_key));
-    $member = getuserbyuid($userinfo['uid']);
-    setloginstatus($member, 1296000);
+    if($userinfo['uid'] && $userinfo['status']) {
+        $member = getuserbyuid($userinfo['uid']);
+        setloginstatus($member, 1296000);
+    } else {
+        C::t('#mobile#mobile_oauths')->update_session_key($wxinfo->session_key, $wxinfo->openid, $wxinfo->unionid);
+
+        $result['code'] = -3;
+        $result['session_key'] = $wxinfo->session_key;
+        $result['message'] = 'no_user';
+    
+        outjson($result);
+    }
 } else {
     // $username = 'minapp_'.strtolower(random(8));
     // $uid = register($username);
 
+    C::t('#mobile#mobile_oauths')->insert(array('openid' => $wxinfo->openid, 'session_key' => $wxinfo->session_key, 'unionid' => $wxinfo->unionid, 'type' => 'minapp'));
+
     $result['code'] = -3;
-    $result['openid'] = $wxinfo->openid;
+    $result['session_key'] = $wxinfo->session_key;
+    // $result['openid'] = $wxinfo->openid;
+    // $result['unionid'] = $wxinfo->unionid;
     $result['message'] = 'no_user';
+
     outjson($result);
     
 
-    // C::t('#mobile#weixin_minapp_user')->insert(array('uid' => $uid, 'openid' => $wxinfo->openid, 'session_key' => $wxinfo->session_key, 'unionid' => $wxinfo->unionid));
+    
 
     // if(C::memory()->enable && strtolower(C::memory()->type) === 'redis') {
 

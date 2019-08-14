@@ -4,6 +4,6 @@ if(!defined('IN_DISCUZ')) {
 	exit('Access Denied');
 }
 
-if($uid && $_GET['openid']) {
-	C::t('#mobile#weixin_minapp_user')->insert(array('uid' => $uid, 'openid' => $_GET['openid'], 'status' => 1), false, true);
+if($uid && $_GET['session_key']) {
+	C::t('#mobile#mobile_oauths')->update_uid_status($uid, 1, $_GET['session_key']);
 }
